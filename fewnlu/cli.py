@@ -34,8 +34,11 @@ from utils import save_predictions, set_seed, save_logits, InputExample
 from augmentation import generate_ipet_train_sets
 from wrapper import TransformerModelWrapper
 from tasks.dataloader import load_dataset, DATASETS
+from tensorboardX import SummaryWriter
 
 from global_vars import DEFAULT_METRICS, TRAIN_EVAL_CONFIG_NAME
+
+import ipdb
 
 logger = log.get_logger()
 
@@ -92,10 +95,11 @@ def _write_results(path: str, results: Dict, dev32_results=None):
                 # ret_dict["dev32"]["all_stdev"][metric] = all_stdev
     return ret_dict
 
-class DataProvider(object):
-    def __init__(self,args, train_data):
 
-        self.split_ratio=args.split_ratio
+class DataProvider(object):
+    def __init__(self, args, train_data):
+
+        self.split_ratio = args.split_ratio
 
         self.few_shot_setting = args.few_shot_setting
         self.task_name = args.task_name
@@ -242,10 +246,11 @@ class DataProvider(object):
                 cur_dev32_data=self.wsc_sample(cur_dev32_data,False,rng)
             return cur_train_data, cur_dev32_data
 
+
 def iterative_run(dataprovider, eval_data, wrapper_config, train_eval_config, unlabeled_data=None, aug_data=None, output_dir=None):
     output_dir = output_dir if output_dir is not None else wrapper_config.output_dir
-    if train_eval_config.generations==1:
-        results=run(dataprovider, eval_data, wrapper_config, train_eval_config, output_dir, unlabeled_data, aug_data, save_unlabeled_logits=False)
+    if train_eval_config.generations == 1:
+        results = run(dataprovider, eval_data, wrapper_config, train_eval_config, output_dir, unlabeled_data, aug_data, save_unlabeled_logits=False)
         return results
 
     for gen in range(train_eval_config.generations):
@@ -316,10 +321,17 @@ def run(dataprovider, eval_data, wrapper_config, train_eval_config, output_dir=N
 
     set_seed(seed)
     assert len(train_eval_config.sampler_seeds) >= repetitions
+
     for pattern_id in pattern_ids:
+
         for fold in range(folds):
-            train_data,dev32_data=dataprovider.get_splited_data(fold_id=fold)
+
+            writer = SummaryWriter(log_dir=os.path.join(wrapper_config.output_dir, f"writer_logs/fold_{fold}"))
+
+            train_data, dev32_data = dataprovider.get_splited_data(fold_id=fold)
+
             for iteration in range(repetitions):
+
                 results_dict = {}
                 pattern_iter_output_dir = "{}/p{}/f{}-i{}".format(output_dir, pattern_id, fold, iteration)
                 train_eval_config.sampler_seed = train_eval_config.sampler_seeds[iteration]
@@ -329,24 +341,31 @@ def run(dataprovider, eval_data, wrapper_config, train_eval_config, output_dir=N
                     continue
                 else:
                     os.makedirs(pattern_iter_output_dir)
+
                 wrapper = TransformerModelWrapper(wrapper_config, pattern_id)
+
                 if do_train:
-                    ipet_train_data=None
+
+                    ipet_train_data = None
+
                     if ipet_data_dirs is not None:
+
                         for (prefix,ipet_data_dir) in ipet_data_dirs.items():
                             p = os.path.join(ipet_data_dir, 'p{}-f{}-i{}-{}-train.bin'.format(pattern_id, fold, iteration, prefix))
                             tmp_ipet_train_data = InputExample.load_examples(p)
                             for example in tmp_ipet_train_data:
                                 example.logits = None
                             if ipet_train_data is None:
-                                ipet_train_data=tmp_ipet_train_data
+                                ipet_train_data = tmp_ipet_train_data
                             else:
-                                ipet_train_data+=tmp_ipet_train_data
-                    if aug_data is not None and train_eval_config.relabel_aug_data==False:
+                                ipet_train_data += tmp_ipet_train_data
+
+                    if aug_data is not None and train_eval_config.relabel_aug_data == False:
                         ipet_train_data = ipet_train_data + aug_data
 
                     cur_results = wrapper.train(train_data, dev32_data, pattern_iter_output_dir, train_eval_config,
-                                                unlabeled_data=unlabeled_data, ipet_train_data=ipet_train_data)
+                                                unlabeled_data=unlabeled_data, ipet_train_data=ipet_train_data,
+                                                writer=writer)
                     results_dict.update(cur_results)
 
                     with open(os.path.join(pattern_iter_output_dir, 'results.txt'), 'w') as fh:
@@ -478,6 +497,7 @@ def process_args(args):
     args.metrics = metrics.get(args.task_name, DEFAULT_METRICS)
     return args
 
+
 def main():
 
     args = get_args()
@@ -500,23 +520,24 @@ def main():
 
     ### prepare data
     train_data, eval_data, unlabeled_data = load_dataset(data_config)
+
     if args.aug_data_dir is not None:
-        aug_data = processor._create_examples(args.aug_data_dir,"aug")
+        aug_data = processor._create_examples(args.aug_data_dir, "aug")
     else:
         aug_data = None
 
-    logger.info('train_data: {}, eval_data: {}'.format(len(train_data),len(eval_data)))
+    logger.info('train_data: {}, eval_data: {}'.format(len(train_data), len(eval_data)))
 
     start_time = time.time()
-    dataprovider=DataProvider(args,train_data) #,dev32_data)
+    dataprovider = DataProvider(args,train_data) #,dev32_data)
     # import pdb 
     # pdb.set_trace()
     # x1,y1=dataprovider.get_splited_data(0)
     # x2,y2=dataprovider.get_splited_data(1)
     # x3,y3=dataprovider.get_splited_data(2)
     # x4,y4=dataprovider.get_splited_data(3)
-    results=iterative_run(dataprovider, eval_data, wrapper_config, train_eval_config, unlabeled_data, aug_data, output_dir=args.output_dir)
-    end_time=time.time()
+    results = iterative_run(dataprovider, eval_data, wrapper_config, train_eval_config, unlabeled_data, aug_data, output_dir=args.output_dir)
+    end_time = time.time()
     time_eclapsed = int(end_time-start_time)
 
     """
@@ -532,7 +553,7 @@ def main():
     result_file_name = "save_" + args.arch_method +"_"+ args.task_name \
                        + "_" + args.few_shot_setting + "_" + args.method + "_" \
                        +args.model_type + '_'+ str(len(train_data)) + ".txt"
-    if args.adapet_balance_alpha!=-1:
+    if args.adapet_balance_alpha != -1:
         result_file_name = "save_detail" + args.arch_method +"_"+ args.task_name \
                     + "_" + args.few_shot_setting + "_" + args.method + "_" \
                     +args.model_type + ".txt"

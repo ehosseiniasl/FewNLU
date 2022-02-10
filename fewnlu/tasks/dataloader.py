@@ -80,7 +80,8 @@ def load_examples(dataset_name: str,
                   use_cloze: bool,
                   num_examples: int,
                   num_examples_per_label: int,
-                  seed: int) -> ProcessorOutputPattern:
+                  seed: int,
+                  num_shots=None) -> ProcessorOutputPattern:
     """Load data examples for a given task processor."""
 
     assert (num_examples is not None) or (num_examples_per_label is not None), \
@@ -99,7 +100,7 @@ def load_examples(dataset_name: str,
     elif set_type == TEST_SET:
         examples = processor.get_test_examples(data_dir)
     elif set_type == TRAIN_SET:
-        examples = processor.get_train_examples(data_dir, use_cloze)
+        examples = processor.get_train_examples(data_dir, use_cloze, num_shots)
     elif set_type == UNLABELED_SET:
         examples = processor.get_unlabeled_examples(data_dir)
         for example in examples:
@@ -136,6 +137,7 @@ def load_dataset(args):
     task_name = args.task_name
     data_dir = args.data_dir
     seed = args.seed
+    num_shots = args.num_shots
 
     train_ex_per_label, dev32_ex_per_label = None, None
     train_ex, dev32_ex = args.train_examples, args.dev32_examples
@@ -143,7 +145,7 @@ def load_dataset(args):
         train_ex_per_label = eq_div(args.train_examples, len(args.label_list)) if args.train_examples != -1 else -1
         dev32_ex_per_label = eq_div(args.dev32_examples, len(args.label_list)) if args.dev32_examples != -1 else -1
 
-    train_data = load_examples(dataset_name, task_name, data_dir, TRAIN_SET, use_cloze, num_examples=train_ex, num_examples_per_label=train_ex_per_label, seed=seed)
+    train_data = load_examples(dataset_name, task_name, data_dir, TRAIN_SET, use_cloze, num_examples=train_ex, num_examples_per_label=train_ex_per_label, seed=seed, num_shots=num_shots)
     # dev32_data = load_examples(dataset_name, task_name, data_dir, DEV32_SET, use_cloze,num_examples=dev32_ex,
     # num_examples_per_label=dev32_ex_per_label, seed=seed)
 
@@ -162,9 +164,10 @@ def load_dataset(args):
     # if (args.method == "lm_training" and args.use_unlabeled_data_lm_training) or (args.method == "ipet"):
     # import pdb 
     # pdb.set_trace()
-    unlabeled_data = load_examples(dataset_name, task_name, data_dir, UNLABELED_SET, use_cloze, args.unlabeled_examples, None, seed)
+    unlabeled_data = load_examples(dataset_name, task_name, data_dir, UNLABELED_SET, use_cloze, args.unlabeled_examples, None, seed, num_shots)
 
     return train_data, eval_data, unlabeled_data
+
 
 DATASETS={
     "superglue": {

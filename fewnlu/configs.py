@@ -25,7 +25,7 @@ class BaseConfig(ABC):
 class DatasetConfig(BaseConfig):
     def __init__(self, use_cloze:bool, dataset_name:str, task_name:str, data_dir:str, seed:int, train_examples:int,
                  dev_examples:int, dev32_examples:int, unlabeled_examples:int, test_examples:int, eval_set:str, method:str,
-                 split_examples_evenly:bool, label_list:List, **kwargs): #TODO add kwargs
+                 split_examples_evenly:bool, label_list:List, num_shots:int, **kwargs): #TODO add kwargs
         self.use_cloze = use_cloze
         self.dataset_name = dataset_name
         self.data_dir = data_dir
@@ -39,7 +39,9 @@ class DatasetConfig(BaseConfig):
         self.method = method
         self.split_examples_evenly = split_examples_evenly
         self.label_list = label_list
-        self.task_name= task_name
+        self.task_name = task_name
+        self.num_shots = num_shots
+
 
 def get_data_config(args):
     return DatasetConfig(**vars(args)) #TODO
@@ -56,7 +58,6 @@ def get_data_config(args):
     #                      split_examples_evenly=args.split_examples_evenly,
     #                      task_name=args.task_name,
     #                      label_list=args.label_list)
-
 
 
 class WrapperConfig(BaseConfig):
@@ -108,7 +109,6 @@ class WrapperConfig(BaseConfig):
             self.adapet_mask_alpha=kwargs['adapet_mask_alpha']
             self.max_num_lbl_tok=kwargs['max_num_lbl_tok']
             self.adapet_balance_alpha=kwargs['adapet_balance_alpha']
-
 
 
 class TrainEvalConfig(BaseConfig):
@@ -221,7 +221,6 @@ class IPetConfig(PetConfig):
         self.scale_factor = scale_factor
         self.n_most_likely = n_most_likely
 """
-
 
 
 def get_wrapper_config(args):

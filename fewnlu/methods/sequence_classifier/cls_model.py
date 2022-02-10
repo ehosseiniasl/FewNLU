@@ -2,6 +2,7 @@ from methods.base_model import BaseModel
 
 import log
 logger = log.get_logger('root')
+import ipdb
 
 class SequenceClassifierModel(BaseModel):
 

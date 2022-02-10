@@ -47,7 +47,7 @@ class SuperGLUEDataProcessor(DataProcessor):
         self.task_name = task_name
         assert self.task_name in SUPERGLUE_PROCESSORS
 
-    def get_train_examples(self, data_dir, use_cloze):
+    def get_train_examples(self, data_dir, use_cloze, num_shots):
         """
         if not use_cloze and self.task_name == "wsc":
             logger.info("Loading CLS train set for WSC task.")
@@ -55,7 +55,10 @@ class SuperGLUEDataProcessor(DataProcessor):
         elif self.task_name=='wsc':
             return self._create_examples(os.path.join(data_dir, SuperGLUEDataProcessor.WSC_TRAIN_FILE_FOR_CLS),  TRAIN_SET, use_cloze=True)
         """
-        return self._create_examples(os.path.join(data_dir, SuperGLUEDataProcessor.TRAIN_FILE), TRAIN_SET)
+        if num_shots == 64:
+            return self._create_examples(os.path.join(data_dir, SuperGLUEDataProcessor.TRAIN_FILE), TRAIN_SET)
+        else:
+            return self._create_examples(os.path.join(data_dir, f"train_{num_shots}.jsonl"), TRAIN_SET)
 
     """
     def get_dev32_examples(self, data_dir, use_cloze):

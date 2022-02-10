@@ -2,7 +2,7 @@ task_name=$1
 device=$2
 model_type=$3
 
-YOUR_DATA_DIR="../data/FewGLUE_v2"
+YOUR_DATA_DIR="/export/home/data/FewGLUE_v2/"
 YOUR_SAVE_DIR="./output"
 
 few_shot_setting="dev32_split"
@@ -90,7 +90,7 @@ cv_k="4"
 every_eval_ratios="1.0"
 MAX_STEPS="5000 2500"
 split_ratio="0.5"
-
+GPU=$((device-1))
 
 for MAX_STEP in $MAX_STEPS
 do
@@ -103,10 +103,11 @@ do
         for every_eval_ratio in $every_eval_ratios
         do
         ACCU=$((${TOTAL_TRAIN_BATCH}/${TRAIN_BATCH_SIZE}))
+        ((GPU++))
         HYPER_PARAMS=${SEQ_LENGTH}_${MAX_STEP}_${TOTAL_TRAIN_BATCH}_${TRAIN_BATCH_SIZE}_${LR}_${every_eval_ratio}_${cv_k}
         OUTPUT_DIR=$save_dir/${HYPER_PARAMS}
 
-        CUDA_VISIBLE_DEVICES=$device python3 cli.py \
+        CUDA_VISIBLE_DEVICES=$GPU python3 cli.py \
           --method $method \
           --arch_method $arch_method \
           --data_dir $DATA_DIR \
@@ -133,8 +134,8 @@ do
           --cv_k $cv_k \
           --overwrite_output_dir \
           --split_ratio $split_ratio \
-          --fix_deberta >myout_${few_shot_setting}_${method}_${task_name}.file 2>&1 &
-          wait
+          --fix_deberta & #>myout_${few_shot_setting}_${method}_${task_name}.file 2>&1 &
+#          wait
         done
       done
     done

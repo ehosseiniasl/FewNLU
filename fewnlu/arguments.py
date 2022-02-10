@@ -7,13 +7,15 @@ from methods.method_vars import METHOD_CLASSES,ARCH_METHOD_CLASSES
 def add_few_shot_setting_args(parser):
     group = parser.add_argument_group("few-shot setting")
     # group.add_argument('--every_eval_step', type=int, default=5, help="Eval dev32 every X updates steps.")
-    group.add_argument('--every_eval_ratio',type=float,default=0.02)
+    group.add_argument('--every_eval_ratio', type=float, default=0.02)
     group.add_argument('--early_stop_epoch', type=int, default=6, help="Maximum early stop epoch.")
     group.add_argument('--few_shot_setting', type=str, default='dev32_setting', choices=['fix_setting', "dev32_setting", "cross_validation", "mdl", "dev32_split"],
                        help="Which few-shot setting to use.")
-    group.add_argument('--cv_k',type=int,default=4)
+    group.add_argument('--cv_k', type=int, default=4)
     group.add_argument('--split_ratio', type=float, default=0.5, help="The split ratio for Multi-Split strategy.")
+    group.add_argument('--num_shots', type=int, default=64, help="number of shots.")
     return parser
+
 
 def add_required_args(parser):
     parser.add_argument("--method", type=str, required=True, choices=METHOD_CLASSES.keys(),

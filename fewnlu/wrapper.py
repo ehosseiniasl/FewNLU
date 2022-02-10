@@ -168,7 +168,7 @@ class TransformerModelWrapper:
         with open(os.path.join(path, CONFIG_NAME), 'r') as f:
             return jsonpickle.decode(f.read())
 
-    def train(self, train_data, dev32_data, pattern_iter_output_dir, train_eval_config, unlabeled_data=None, ipet_train_data=None):
+    def train(self, train_data, dev32_data, pattern_iter_output_dir, train_eval_config, unlabeled_data=None, ipet_train_data=None, writer=None):
         #TODO jing
         if not ipet_train_data:
             ipet_train_data = []
@@ -211,7 +211,7 @@ class TransformerModelWrapper:
         global_step, tr_loss = self._train(train_data=train_data,
                                            dev32_data=dev32_data,
                                            unlabeled_data=unlabeled_data,
-                                           pattern_iter_output_dir=pattern_iter_output_dir,
+                                           pattern_iter_output_dir=pattern_iter_output_dir, writer=writer,
                                            ** train_eval_config.__dict__)
         results_dict['global_step'] = global_step
         results_dict['average_loss'] = tr_loss
@@ -233,6 +233,7 @@ class TransformerModelWrapper:
                              eval_priming=eval_priming,
                              priming_num=priming_num,
                              use_dropout=use_dropout)
+
         predictions = np.argmax(results['logits'], axis=1)
 
         scores = {}
@@ -300,10 +301,10 @@ class TransformerModelWrapper:
                max_steps, num_train_epochs,
                metrics, decoding_strategy, alpha, temperature,
                early_stop_epoch, every_eval_ratio, pattern_iter_output_dir,
-               n_gpu, device, few_shot_setting, use_dropout=False, lm_training=False, **_):
+               n_gpu, device, few_shot_setting, writer, use_dropout=False, lm_training=False, **_):
         # import pdb
         # pdb.set_trace()
-        train_dataloader=self._prepare_dataloader(
+        train_dataloader = self._prepare_dataloader(
             "train", train_data, per_gpu_train_batch_size, train_priming, sampler_seed, n_gpu, labelled=True)
         if self.config.method == "adapet":
             extra_dataloader = self._prepare_dataloader(
@@ -312,7 +313,7 @@ class TransformerModelWrapper:
         else:
             extra_dataloader, extra_iter = None, None
 
-        if lm_training==True:
+        if lm_training == True:
             lm_dataloader = self._prepare_dataloader(
                 "extra", unlabeled_data, per_gpu_unlabeled_batch_size, train_priming, sampler_seed, n_gpu,labelled=False)
             lm_iter = lm_dataloader.__iter__()
@@ -341,7 +342,7 @@ class TransformerModelWrapper:
         if self.config.method == "ptuning":
             embedding_optimizer, embedding_scheduler = ret_dict["embedding_optimizer"], ret_dict["embedding_scheduler"]
 
-        writer = SummaryWriter(log_dir=os.path.join(self.config.output_dir, "writer_logs"))
+        # writer = SummaryWriter(log_dir=os.path.join(self.config.output_dir, "writer_logs"))
 
         logger.info("\n")
         logger.info("dev32_data performance before training.")
@@ -410,7 +411,7 @@ class TransformerModelWrapper:
                     if loss is None:
                         loss = self.model.train_step(batch, **train_step_inputs)
 
-                if lm_training==True:
+                if lm_training == True:
                     # unlabeled_lm_input_ids = lm_batch['input_ids']
                     # unlabeled_lm_block_flags = lm_batch["block_flags"]
                     # lm_batch['input_ids'], lm_batch['mlm_labels'] = self._mask_tokens(unlabeled_lm_input_ids)
